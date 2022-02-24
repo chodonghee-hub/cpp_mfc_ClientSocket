@@ -64,6 +64,8 @@ void CStudymfc0221ClientDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT_LOG, m_LogMessage);
 	DDX_Control(pDX, IDC_EDIT_INPUT, m_InputMessage);
 	DDX_Control(pDX, IDC_BUTTON_SET_DEFAULT, m_SetDefault);
+	//  DDX_Control(pDX, IDC_BUTTON_CONNECT, m_btnConnection);
+	DDX_Control(pDX, IDC_BUTTON_CONNECT, m_BtnConnection);
 }
 
 BEGIN_MESSAGE_MAP(CStudymfc0221ClientDlg, CDialogEx)
@@ -73,6 +75,7 @@ BEGIN_MESSAGE_MAP(CStudymfc0221ClientDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_CONNECT, &CStudymfc0221ClientDlg::OnBnClickedButtonConnect)
 	ON_BN_CLICKED(IDC_BUTTON_SEND, &CStudymfc0221ClientDlg::OnBnClickedButtonSend)
 	ON_BN_CLICKED(IDC_BUTTON_SET_DEFAULT, &CStudymfc0221ClientDlg::OnBnClickedButtonSetDefault)
+	ON_EN_CHANGE(IDC_EDIT_LOG, &CStudymfc0221ClientDlg::OnEnChangeEditLog)
 END_MESSAGE_MAP()
 
 
@@ -81,6 +84,8 @@ END_MESSAGE_MAP()
 BOOL CStudymfc0221ClientDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	b_mfcConnectionFlag = false;
+	clnt = new cClientSocket(this);
 
 	// 시스템 메뉴에 "정보..." 메뉴 항목을 추가합니다.
 
@@ -161,29 +166,49 @@ HCURSOR CStudymfc0221ClientDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
 void CStudymfc0221ClientDlg::OnBnClickedButtonConnect()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	// cClientSocket -> __Init__()
-	if (clnt.bCheckWindowSock())
-	{
-		AfxMessageBox(_T("WSAStartup"));
+	if (b_mfcConnectionFlag == false) {
+		if (clnt->bCheckWindowSock())
+		{
+			AfxMessageBox(_T("WSAStartup"));
+		}
+
+
+		clnt->_SetSocketInfo();
+		if (clnt->bCheckValidSocket())
+		{
+			AfxMessageBox(_T("ValidSocket"));
+		}
+		CString _IpInfo;
+		CString _PortInfo;
+		CString _tmp;
+		m_IpInfo.GetWindowTextW(_IpInfo);
+
+
+		m_PortInfo.GetWindowTextW(_PortInfo);
+
+
+
+		if (clnt->bCheckConnection(_IpInfo, _PortInfo))
+		{
+			b_mfcConnectionFlag = true;
+			AfxMessageBox(_T("Connect Success"));
+			_tmp.Format(_T("▶ connection	: O \r\n▶ recvThread	: O"));
+			m_LogMessage.SetWindowTextW(_tmp);
+			m_BtnConnection.SetWindowTextW(_T("Break"));
+			//readBufferThread = thread(_ReadBuffer, this);
+		}
 	}
-	clnt._SetSocketInfo();
-	if (clnt.bCheckValidSocket())
+	else
 	{
-		AfxMessageBox(_T("ValidSocket"));
+		m_BtnConnection.SetWindowTextW(_T("Connect"));	
+		b_mfcConnectionFlag = false;
+		// break function
 	}
-	CString _IpInfo;
-	CString _PortInfo;
-	m_IpInfo.GetWindowTextW(_IpInfo);
-	m_PortInfo.GetWindowTextW(_PortInfo);
-	if (clnt.bCheckConnection(_IpInfo, _PortInfo))
-	{
-		AfxMessageBox(_T("Connect Success"));
-	}
+	
 }
 
 
@@ -192,7 +217,7 @@ void CStudymfc0221ClientDlg::OnBnClickedButtonSend()
 	CString _MessageBuffer;
 	m_InputMessage.GetWindowTextW(_MessageBuffer);
 	m_LogMessage.SetWindowTextW(_MessageBuffer);
-	clnt._SendMessageTo(_MessageBuffer);
+	clnt->_SendMessageTo(_MessageBuffer);
 	m_InputMessage.SetWindowTextW(_T(""));
 }
 
@@ -202,3 +227,52 @@ void CStudymfc0221ClientDlg::OnBnClickedButtonSetDefault()
 	m_IpInfo.SetWindowTextW(_T("127.0.0.1"));
 	m_PortInfo.SetWindowTextW(_T("8080"));
 }
+
+
+void CStudymfc0221ClientDlg::OnEnChangeEditLog()
+{
+}
+
+void CStudymfc0221ClientDlg::_ReadBuffer(LPVOID lp)
+{
+	CStudymfc0221ClientDlg* p = (CStudymfc0221ClientDlg*)lp;
+	// check init thread
+	CString tmp; 
+	
+	while (p->b_mfcConnectionFlag)
+	{
+		tmp.Format(_T("** now read buffer ..."));
+		p->m_LogMessage.SetWindowTextW(tmp);
+		Sleep(1000);
+
+		string _rs = p->clnt->cGetBuffer();
+		const char* rs = _rs.c_str();
+		if (strcmp(rs, "none") != 0)
+		{
+			p->m_LogMessage.SetWindowTextW((CString) rs);
+			p->clnt->vec_Buffer.pop_back();
+			Sleep(5000);
+		}
+
+		Sleep(1000);
+	}
+}
+
+void CStudymfc0221ClientDlg::_CallSetMessage()
+{
+	CString tmp;
+	tmp.Format(_T("** now read buffer ..."));
+	m_LogMessage.SetWindowTextW(tmp);
+	Sleep(1000);
+
+	string _rs = clnt->cGetBuffer();
+	const char* rs = _rs.c_str();
+	if (strcmp(rs, "none") != 0)
+	{
+		m_LogMessage.SetWindowTextW((CString)rs);
+		clnt->vec_Buffer.pop_back();
+		Sleep(5000);
+	}
+}
+
+

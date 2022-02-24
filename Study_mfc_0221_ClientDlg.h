@@ -1,15 +1,18 @@
-﻿
+﻿#define _WINSOCK_DEPRECATED_NO_WARNINGS
 // Study_mfc_0221_ClientDlg.h: 헤더 파일
 //
 
 #pragma once
 #include "cClientSocket.h"
+#include <thread>
+#include <string>
+#include <mutex>
 
 // CStudymfc0221ClientDlg 대화 상자
 class CStudymfc0221ClientDlg : public CDialogEx
 {
 private :
-	cClientSocket	clnt;
+	cClientSocket*	clnt;
 
 // 생성입니다.
 public:
@@ -26,7 +29,10 @@ public:
 
 // 구현입니다.
 protected:
-	HICON m_hIcon;
+	HICON	m_hIcon;
+	thread	readBufferThread;
+	mutex	mtxPoint;
+	bool	b_mfcConnectionFlag;
 
 	// 생성된 메시지 맵 함수
 	virtual BOOL OnInitDialog();
@@ -43,4 +49,8 @@ public:
 	afx_msg void OnBnClickedButtonSend();
 	CButton m_SetDefault;
 	afx_msg void OnBnClickedButtonSetDefault();
+	afx_msg void OnEnChangeEditLog();
+	CButton m_BtnConnection;
+	static void _ReadBuffer(LPVOID lp);
+	void _CallSetMessage();
 };

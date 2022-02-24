@@ -3,25 +3,37 @@
 #include <iostream>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#pragma commeqnt(lib, "ws2_32.lib")
+#include <thread>
+#include <string>
+#include <mutex>
+#include <vector>
+#pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
 class cClientSocket
 {
 private : 
-	WSADATA		wsaData;
-	SOCKET		clnt;
-	SOCKADDR_IN	addr;
-	bool		bConnectionFlag;
+	WSADATA			wsaData;
+	SOCKET			clnt;
+	SOCKADDR_IN		addr;
+	thread			recvThread;
+	mutex			mtxPoint;
+	LPVOID			pMfc;
+	char*			cBuffer;
 
 public :
+	bool			bConnectionFlag;
+	vector<char*>	vec_Buffer;
+	cClientSocket(LPVOID _pMfc);
 	cClientSocket();
 	~cClientSocket();
 
 	void __init__();
 	void _SetSocketInfo();
 	void _SendMessageTo(CString _message);
+	static void _RecvDataFrom(LPVOID lp);
+	string cGetBuffer();
 	bool bCheckWindowSock();
 	bool bCheckValidSocket();
 	bool bCheckConnection(CString _IpNum, CString _PortNum);
