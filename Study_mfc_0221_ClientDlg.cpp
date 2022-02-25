@@ -199,7 +199,6 @@ void CStudymfc0221ClientDlg::OnBnClickedButtonConnect()
 			_tmp.Format(_T("▶ connection	: O \r\n▶ recvThread	: O"));
 			m_LogMessage.SetWindowTextW(_tmp);
 			m_BtnConnection.SetWindowTextW(_T("Break"));
-			//readBufferThread = thread(_ReadBuffer, this);
 		}
 	}
 	else
@@ -207,6 +206,8 @@ void CStudymfc0221ClientDlg::OnBnClickedButtonConnect()
 		m_BtnConnection.SetWindowTextW(_T("Connect"));	
 		b_mfcConnectionFlag = false;
 		// break function
+		clnt->bConnectionFlag = false;
+		clnt->_BreakConnection();
 	}
 	
 }

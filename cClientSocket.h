@@ -21,9 +21,10 @@ private :
 	mutex			mtxPoint;
 	LPVOID			pMfc;
 	char*			cBuffer;
-
-public :
+	
+public :	
 	bool			bConnectionFlag;
+	bool			bRecvThreadFlag;
 	vector<char*>	vec_Buffer;
 	cClientSocket(LPVOID _pMfc);
 	cClientSocket();
@@ -32,6 +33,7 @@ public :
 	void __init__();
 	void _SetSocketInfo();
 	void _SendMessageTo(CString _message);
+	void _BreakConnection();
 	static void _RecvDataFrom(LPVOID lp);
 	string cGetBuffer();
 	bool bCheckWindowSock();

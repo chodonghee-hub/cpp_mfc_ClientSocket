@@ -7,6 +7,7 @@ cClientSocket::cClientSocket(LPVOID _pMfc)
 	pMfc = _pMfc;
 	cBuffer = new char;
 	ZeroMemory(cBuffer, strlen(cBuffer));
+	bConnectionFlag = false;
 }
 
 cClientSocket::cClientSocket()
@@ -14,9 +15,7 @@ cClientSocket::cClientSocket()
 	cBuffer = new char;
 }
 
-cClientSocket::~cClientSocket()
-{
-}
+cClientSocket::~cClientSocket(){ }
 
 void cClientSocket::__init__()
 {
@@ -37,36 +36,55 @@ void cClientSocket::_SendMessageTo(CString _message)
 	send(clnt, str.c_str(), length, 0);
 }
 
+void cClientSocket::_BreakConnection()
+{
+	while (bRecvThreadFlag)
+	{
+		Sleep(10);
+	}
+	//delete[] cBuffer;
+	//cBuffer = nullptr;
+	closesocket(clnt);
+	WSACleanup();
+	delete this;
+}
+
 void cClientSocket::_RecvDataFrom(LPVOID lp)
 {
 	cClientSocket* p = nullptr;
 	p = (cClientSocket*)lp;
+	p->bRecvThreadFlag = p->bConnectionFlag;
 	CStudymfc0221ClientDlg* pDlg = (CStudymfc0221ClientDlg*)p->pMfc;
 
 	int recv_result;
-	while (p->bConnectionFlag)
-	{	
-		try
+	while (p->bRecvThreadFlag) 
+	{
+		while (p->bConnectionFlag)
 		{
-			recv(p->clnt, p->cBuffer, 1024, 0);
-			if (strncmp(p->cBuffer, "exit", strlen(p->cBuffer)) == 0)
+			try
 			{
+
+				recv(p->clnt, p->cBuffer, 1024, 0);
+				if (strncmp(p->cBuffer, "exit", strlen(p->cBuffer)) == 0)
+				{
+					p->bConnectionFlag = false;
+				}
+				else
+				{
+					p->vec_Buffer.push_back(p->cBuffer);
+					pDlg->_CallSetMessage();
+				}
+			}
+
+			catch (int e)
+			{
+				cout << "** Termiante connection from Server ..." << endl;
 				p->bConnectionFlag = false;
 			}
-			else
-			{
-				p->vec_Buffer.push_back(p->cBuffer);
-				pDlg->_CallSetMessage();
-			}
+			ZeroMemory(p->cBuffer, strlen(p->cBuffer) + 1);
+			Sleep(1);
 		}
-
-		catch (int e)
-		{
-			cout << "** Termiante connection from Server ..." << endl;
-			p->bConnectionFlag = false;
-		}
-		ZeroMemory(p->cBuffer, strlen(p->cBuffer)+1);
-		Sleep(1);
+		p->bRecvThreadFlag = false;
 	}
 }
 
@@ -118,8 +136,10 @@ bool cClientSocket::bCheckConnection(CString _IpNum, CString _PortNum)
 		return false;
 	}
 
+
 	while (!bConnectionFlag) { Sleep(1); }
-	recvThread = thread(_RecvDataFrom, this);
+  	recvThread = thread(_RecvDataFrom, this);
+	recvThread.detach();
 	mtxPoint.unlock();		// remove mutex
 	return true;
 }
